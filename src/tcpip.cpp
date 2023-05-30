@@ -110,6 +110,8 @@ static uint8_t check_ip_message_is_from(const uint8_t *ip) {
 }
 
 static boolean is_lan(const uint8_t source[IP_LEN], const uint8_t destination[IP_LEN]) {
+    if (!EtherCard::gwip[0])
+        return true; // no gateway is assigned. so assume all ip traffics are local.
     if(source[0] == 0 || destination[0] == 0) {
         return false;
     }
@@ -690,7 +692,7 @@ uint16_t EtherCard::packetLoop (uint16_t plen) {
 
 #if ETHERCARD_TCPCLIENT
         //Initiate TCP/IP session if pending
-        if (tcp_client_state==TCP_STATE_SENDSYN && (waitgwmac & WGW_HAVE_GW_MAC)) { // send a syn
+        if (tcp_client_state==TCP_STATE_SENDSYN && ((waitgwmac & WGW_HAVE_GW_MAC) || !gwip[0])) { // send a syn
             tcp_client_state = TCP_STATE_SYNSENT;
             tcpclient_src_port_l++; // allocate a new port
             client_syn(((tcp_fd<<5) | (0x1f & tcpclient_src_port_l)),tcp_client_port_h,tcp_client_port_l);
