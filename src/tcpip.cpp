@@ -50,9 +50,9 @@ static const char *client_urlbuf_var; // Pointer to c-string filename part of HT
 static const char *client_hoststr; // Pointer to c-string hostname of current HTTP request
 static void (*icmp_cb)(uint8_t *ip); // Pointer to callback function for ICMP ECHO response handler (triggers when localhost receives ping response (pong))
 static uint8_t destmacaddr[ETH_LEN]; // storing both dns server and destination mac addresses, but at different times because both are never needed at same time.
-static boolean waiting_for_dns_mac = false; //might be better to use bit flags and bitmask operations for these conditions
+static uint32_t waiting_for_dns_mac = false; //might be better to use bit flags and bitmask operations for these conditions
 static boolean has_dns_mac = false;
-static boolean waiting_for_dest_mac = false;
+static uint32_t waiting_for_dest_mac = false;
 static boolean has_dest_mac = false;
 static uint8_t gwmacaddr[ETH_LEN]; // Hardware (MAC) address of gateway router
 static uint8_t waitgwmac; // Bitwise flags of gateway router status - see below for states
@@ -699,16 +699,14 @@ uint16_t EtherCard::packetLoop (uint16_t plen) {
         }
 #endif
 
-        //!@todo this is trying to find mac only once. Need some timeout to make another call if first one doesn't succeed.
-        if(is_lan(myip, dnsip) && !has_dns_mac && !waiting_for_dns_mac) {
+        if(is_lan(myip, dnsip) && !has_dns_mac && (waiting_for_dns_mac < millis())) {
             client_arp_whohas(dnsip);
-            waiting_for_dns_mac = true;
+            waiting_for_dns_mac = millis() + 1000;
         }
 
-        //!@todo this is trying to find mac only once. Need some timeout to make another call if first one doesn't succeed.
-        if(is_lan(myip, hisip) && !has_dest_mac && !waiting_for_dest_mac) {
+        if(is_lan(myip, hisip) && !has_dest_mac && (waiting_for_dest_mac < millis())) {
             client_arp_whohas(hisip);
-            waiting_for_dest_mac = true;
+            waiting_for_dest_mac = millis() + 1000;
         }
 
         return 0;
